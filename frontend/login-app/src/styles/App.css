@@ -1,58 +1,106 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
 /* src/styles/App.css */
-.app-container {
+
+/* Resetowanie marginesów i paddingów w całej aplikacji */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Tło całej strony */
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f7fc; /* Jasnoniebieskie tło */
+  color: #333; /* Ciemnoszary kolor tekstu */
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+/* Główna kontener aplikacji */
+.App {
+  width: 100%;
+  max-width: 480px; /* Maksymalna szerokość kontenera */
+  padding: 40px;
+  background-color: #fff; /* Białe tło */
+  border-radius: 12px; /* Zaokrąglone rogi */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Delikatny cień */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background-color: #e9e9f1;
 }
 
+/* Nagłówek strony */
 h1 {
-  font-size: 24px;
-  margin-bottom: 40px;
-  color: #333;
+  font-size: 32px;
+  color: #4a90e2; /* Niebieski kolor */
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Opis pod nagłówkiem */
+p {
+  font-size: 16px;
+  color: #666; /* Szary kolor tekstu */
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* Przyciski - dodajemy stylowanie dla przycisków */
+button {
+  background-color: #4a90e2; /* Niebieski przycisk */
+  color: white;
+  font-size: 16px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+button:hover {
+  background-color: #357ab7; /* Ciemniejszy niebieski przy najechaniu */
+}
+
+/* Styl dla formularzy (dodajemy przestrzeń między polami formularza) */
+input {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  transition: border-color 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4a90e2; /* Niebieska obramówka przy fokusu */
+}
+
+input::placeholder {
+  color: #aaa; /* Szary kolor tekstu w placeholderze */
+}
+
+/* Styl dla błędów formularza */
+.error {
+  color: #e74c3c; /* Czerwony kolor tekstu */
+  font-size: 14px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* Dodatkowa sekcja, na przykład dla tekstów pomocniczych lub instrukcji */
+.instructions {
+  font-size: 14px;
+  color: #777;
+  margin-top: 20px;
+  text-align: center;
 }

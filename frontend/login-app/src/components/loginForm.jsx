@@ -9,13 +9,10 @@ const LoginForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (!email || !password) {
       setError('Proszę wypełnić wszystkie pola');
       return;
     }
-
-    // Tu można dodać logikę logowania, np. API
     alert('Zalogowano pomyślnie');
   };
 
