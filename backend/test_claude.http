@@ -1,0 +1,93 @@
+### Authentication Endpoints
+
+### 1. Rejestracja nowego użytkownika
+POST http://localhost:5000/auth/register
+Content-Type: application/json
+
+{
+  "login": "jkowalskiiii",
+  "password": "TestPassword123!",
+  "email": "jan.kowalskiiii@example.com",
+  "first_name": "Jan",
+  "last_name": "Kowalski",
+  "position": "Developer"
+}
+
+###
+
+### 2. Wyślij kod potwierdzający na email (opcjonalne - register już to robi)
+POST http://localhost:5000/auth/request-code
+Content-Type: application/json
+
+{
+  "email": "admin@admin.com"
+}
+
+###
+
+### 3. Potwierdź kod i otrzymaj JWT token
+POST http://localhost:5000/auth/confirm-code
+Content-Type: application/json
+
+{
+  "token": "Imphbi5rb3dhbHNraWlpaUBleGFtcGxlLmNvbSI.aPk8mw.kF9MDasUM-klCHGsd74t9h1WF4Q"
+}
+
+> {%
+if (response.body && response.body.token) {
+    client.global.set("jwt_token", response.body.token);
+}
+%}
+
+###
+
+### 4. Zaloguj się używając email i hasła
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "email": "jan.kowalskiiii@example.com",
+  "password": "TestPassword123!"
+}
+
+> {%
+if (response.body && response.body.token) {
+    client.global.set("jwt_token", response.body.token);
+}
+%}
+
+###
+
+### 5. Test z istniejącym użytkownikiem (admin)
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@admin.com",
+  "password": "admin123"
+}
+
+> {%
+if (response.body && response.body.token) {
+    client.global.set("jwt_token", response.body.token);
+}
+%}
+
+###
+
+### 6. Test z nieprawidłowymi danymi logowania
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@example.com",
+  "password": "wrongpassword"
+}
+
+###
+
+### 7. Przykład użycia JWT tokena w kolejnych requestach
+GET http://localhost:5000/some-protected-endpoint
+Authorization: Bearer {{jwt_token}}
+
+###

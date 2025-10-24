@@ -1,0 +1,25 @@
+### Authentication Endpoints
+
+# Send one-time login code
+POST http://localhost:5000/auth/request-code
+Content-Type: application/json
+
+{
+  "email": "admin@admin.com"
+}
+
+###
+
+# Confirm one-time code and get JWT groupCode
+POST http://localhost:5000/auth/confirm-code
+Content-Type: application/json
+
+{
+  "token": "ImFkbWluQGFkbWluLmNvbSI.aPiaoQ.AkSSHnV1yHad3fGLPyeGhiGtCps"
+}
+
+> {%
+if (response.body && response.body.token) {
+    client.global.set("jwt_token", response.body.token);
+}
+%}
