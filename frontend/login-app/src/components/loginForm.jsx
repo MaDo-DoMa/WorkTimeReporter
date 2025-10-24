@@ -1,19 +1,42 @@
-// src/components/LoginForm.jsx
 import React, { useState } from 'react';
 import '../styles/LoginForm.css';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Proszę wypełnić wszystkie pola');
       return;
     }
-    alert('Zalogowano pomyślnie');
+
+    try {
+      const res = await fetch('http://localhost:5000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Błąd logowania');
+        return;
+      }
+
+      // zapis JWT w localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      navigate('/report'); // przekierowanie do strony raportowania
+    } catch (err) {
+      setError('Błąd serwera');
+    }
   };
 
   return (

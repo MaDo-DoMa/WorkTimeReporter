@@ -104,3 +104,28 @@ input::placeholder {
   margin-top: 20px;
   text-align: center;
 }
+
+/* Styl dla przełączania między logowaniem a rejestracją */
+.toggle-text {
+  margin-top: 16px;
+  font-size: 15px;
+  color: #333;
+  text-align: center;
+}
+
+.toggle-link {
+  color: #4a90e2;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.toggle-link:hover {
+  text-decoration: underline;
+  color: #357ab7; /* lekko ciemniejszy niebieski przy hoverze */
+}
+
+.toggle-link:active {
+  transform: scale(1.05); /* delikatne powiększenie przy kliknięciu */
+}
