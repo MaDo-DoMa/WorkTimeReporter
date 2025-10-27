@@ -3,7 +3,7 @@ from flask_mail import Message
 from flask import Blueprint, current_app as app, request, jsonify
 from itsdangerous import URLSafeTimedSerializer
 from app import mail
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 from models import db, User
 
@@ -179,6 +179,9 @@ def confirm():
     }), 200
 
 
+from flask import session
+
+
 @auth.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -211,10 +214,45 @@ def login():
         if user.password != password:
             return jsonify({'error': 'Invalid email or password'}), 401
 
-    # Utwórz token JWT
+    # Zapisz użytkownika w sesji
+    session['user_id'] = user.id
+    session['email'] = user.email
+
+    # Utwórz token JWT (jeśli nadal chcesz go używać)
     access_token = create_access_token(identity=user.id)
 
     return jsonify({
         "token": access_token,
+        "user": user.to_dict(),
+        "message": "Logged in successfully"
+    }), 200
+
+
+@auth.route('/me', methods=['GET'])
+def get_current_user():
+    # Pobierz ID użytkownika z sesji
+    user_id = session.get('user_id')
+
+    if not user_id:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    # Znajdź użytkownika w bazie danych
+    user = db.session.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify({
         "user": user.to_dict()
+    }), 200
+
+
+@auth.route('/logout', methods=['POST'])
+def logout():
+    # Usuń dane z sesji
+    session.pop('user_id', None)
+    session.pop('email', None)
+
+    return jsonify({
+        "message": "Logged out successfully"
     }), 200
