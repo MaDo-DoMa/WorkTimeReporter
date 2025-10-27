@@ -1,0 +1,65 @@
+### 1. Utwórz nowy raport
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "work_start": "2025-10-22T09:00:00",
+  "work_end": "2025-10-22T17:00:00",
+  "project": "Website Redesign"
+}
+
+###
+
+### 2. Utwórz raport bez work_end (praca w toku)
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "work_start": "2025-10-22T18:00:00",
+  "project": "Mobile App"
+}
+
+###
+
+### 3. Pobierz wszystkie raporty użytkownika
+GET http://localhost:5000/reports
+Authorization: Bearer {{jwt_token}}
+
+###
+
+### 4. Pobierz raporty filtrowane po projekcie
+GET http://localhost:5000/api/reports?project=Website Redesign
+Authorization: Bearer {{jwt_token}}
+
+###
+
+### 5. Pobierz konkretny raport
+GET http://localhost:5000/api/reports/1
+Authorization: Bearer {{jwt_token}}
+
+###
+
+### 6. Zaktualizuj raport
+PUT http://localhost:5000/api/reports/1
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "work_end": "2025-10-22T18:30:00"
+}
+
+###
+
+### 7. Usuń raport
+DELETE http://localhost:5000/api/reports/1
+Authorization: Bearer {{jwt_token}}
+
+###
+
+### 8. Pobierz listę projektów użytkownika
+GET http://localhost:5000/api/reports/projects
+Authorization: Bearer {{jwt_token}}
+
+###
