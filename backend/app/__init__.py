@@ -10,12 +10,14 @@ def create_app(config_class="config.Config"):
     app = Flask(__name__, template_folder="../templates")
     app.config.from_object(config_class)
 
-    # CORS z credentials - WAŻNE dla sesji!
+    # WAŻNE: CORS z credentials - ustaw konkretne origin zamiast wildcard
     CORS(app,
          supports_credentials=True,
-         origins=["http://localhost:3000", "http://localhost:5000"],
-         allow_headers=["Content-Type"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         origins=["http://localhost:3000", "http://localhost:5173"],  # Dodano 5173 dla Vite
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         expose_headers=["Content-Type"],
+         max_age=3600)
 
     # Initialize extensions with app
     db.init_app(app)

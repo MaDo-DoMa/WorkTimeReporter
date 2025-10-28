@@ -19,6 +19,7 @@ const LoginForm = () => {
       const res = await fetch('http://localhost:5000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // KRYTYCZNE: wysyła ciasteczka sesji
         body: JSON.stringify({ email, password }),
       });
 
@@ -29,13 +30,14 @@ const LoginForm = () => {
         return;
       }
 
-      // zapis JWT w localStorage
-      localStorage.setItem('token', data.token);
+      // NIE MA JWT! Backend używa sesji
+      // Zapisz tylko informacje o użytkowniku
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      navigate('/report'); // przekierowanie do strony raportowania
+      navigate('/report');
     } catch (err) {
-      setError('Błąd serwera');
+      console.error('Błąd logowania:', err);
+      setError('Błąd połączenia z serwerem');
     }
   };
 

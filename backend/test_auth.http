@@ -20,7 +20,7 @@ POST http://localhost:5000/auth/verify-email
 Content-Type: application/json
 
 {
-  "token": "InhkQGV4YW1wbGUuY29tIg.aQEs3w.vsvR6wDf6pgUs2EK7lBLm5-HKt0"
+  "token": "ImRzYUBkYS5kcyI.aQFBqA.5-a9_idpx7EpE9q6yu1D1bn7cvA"
 }
 
 ###

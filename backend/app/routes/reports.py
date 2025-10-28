@@ -1,5 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
+from flask_cors import cross_origin
+
 from models import db, Reports, User
 
 reports = Blueprint('reports', __name__)
@@ -21,6 +23,7 @@ def require_login():
 
 
 @reports.route('/reports', methods=['POST'])
+@cross_origin(origins=["http://localhost:5173"], supports_credentials=True)
 def create_report():
     """Utwórz nowy raport czasu pracy"""
     user_id = require_login()

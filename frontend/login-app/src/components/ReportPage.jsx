@@ -8,19 +8,17 @@ export default function ReportPage() {
   const [project, setProject] = useState("");
   const [reportStatus, setReportStatus] = useState("");
 
-  // === STANY DLA FORMULARZA WYSZUKIWANIA (GET) - TYLKO DANE OSOBOWE ===
+  // === STANY DLA WYSZUKIWANIA ===
   const [searchFirstName, setSearchFirstName] = useState("");
   const [searchLastName, setSearchLastName] = useState("");
   const [searchPosition, setSearchPosition] = useState("");
-
   const [searchStatus, setSearchStatus] = useState("");
   const [searchResults, setSearchResults] = useState([]);
 
-  // Funkcja pomocnicza do nagłówków (Autoryzacja przez Sesję/Ciasteczka)
+  // Funkcja pomocnicza do nagłówków
   const getAuthHeaders = () => {
     return {
       "Content-Type": "application/json",
-      // Używamy sesji, więc autoryzacja jest realizowana przez 'credentials: include'
     };
   };
 
@@ -36,16 +34,17 @@ export default function ReportPage() {
 
     const data = {
         work_start: workStart,
-        work_end: workEnd,
+        work_end: workEnd || null,
         project: project
     };
 
     try {
-      const res = await fetch("http://localhost:5000/reports", {
+      // POPRAWIONY URL: /api/reports zamiast /reports
+      const res = await fetch("http://localhost:5000/api/reports", {
         method: "POST",
         headers: getAuthHeaders(),
+        credentials: 'include', // KRYTYCZNE!
         body: JSON.stringify(data),
-        credentials: 'include'
       });
 
       if (res.ok) {
@@ -57,11 +56,11 @@ export default function ReportPage() {
         const errorData = await res.json();
         setReportStatus(`❌ Błąd: ${errorData.error || res.statusText}`);
       }
-    } catch {
+    } catch (err) {
+      console.error('Błąd raportowania:', err);
       setReportStatus("🚫 Brak połączenia z serwerem!");
     }
   };
-
 
   // === OBSŁUGA WYSZUKIWANIA (GET) ===
   const handleSearch = async (e) => {
@@ -69,51 +68,35 @@ export default function ReportPage() {
     setSearchStatus("🔍 Wyszukiwanie...");
     setSearchResults([]);
 
-    const params = new URLSearchParams();
-
-    // --- POLA OSOBOWE WYSYŁANE DO BACKENDU ---
-    // WAŻNA UWAGA: Obecny reports.py ignoruje te parametry.
-    // Backend ZAWSZE zwróci tylko raporty zalogowanego użytkownika,
-    // ignorując podane imię, nazwisko i stanowisko.
-    if (searchFirstName) params.append('firstName', searchFirstName);
-    if (searchLastName) params.append('lastName', searchLastName);
-    if (searchPosition) params.append('position', searchPosition);
-
-    // Pamiętaj: backend reports.py używa tylko: project, start_date, end_date.
-
     try {
-        // Używamy GET /reports, które domyślnie zwraca raporty ZALOGOWANEGO użytkownika
-        const res = await fetch(`http://localhost:5000/reports?${params.toString()}`, {
+        // POPRAWIONY URL: /api/reports
+        const res = await fetch("http://localhost:5000/api/reports", {
             method: 'GET',
             headers: getAuthHeaders(),
-            credentials: 'include'
+            credentials: 'include', // KRYTYCZNE!
         });
 
         if (res.ok) {
             const data = await res.json();
             setSearchResults(data.reports);
-            setSearchStatus(`✅ Znaleziono ${data.count} raportów (dla zalogowanego użytkownika).`);
+            setSearchStatus(`✅ Znaleziono ${data.count} raportów.`);
 
-            // W przypadku, gdyby to był admin i chciał zobaczyć inne osoby,
-            // ta implementacja backendu to uniemożliwia.
             if (searchFirstName || searchLastName || searchPosition) {
-                 console.warn("UWAGA: Backend nie filtruje po Imieniu/Nazwisku/Stanowisku. Zwraca tylko raporty zalogowanego użytkownika.");
+                 console.warn("Backend nie filtruje po Imieniu/Nazwisku/Stanowisku. Zwraca tylko Twoje raporty.");
             }
         } else if (res.status === 401) {
-            setSearchStatus("❌ Błąd: Musisz być zalogowany, aby wyszukiwać.");
-        }
-        else {
+            setSearchStatus("❌ Musisz być zalogowany!");
+        } else {
              const errorData = await res.json();
              setSearchStatus(`❌ Błąd: ${errorData.error || res.statusText}`);
         }
-
-    } catch (e) {
+    } catch (err) {
+        console.error('Błąd wyszukiwania:', err);
         setSearchStatus("🚫 Brak połączenia z serwerem!");
     }
   };
 
-
-  // Funkcja pomocnicza do wyświetlania daty i czasu trwania
+  // Funkcja formatowania czasu
   const formatDuration = (start, end) => {
     if (!start) return "Brak danych";
     const startDt = new Date(start);
@@ -124,17 +107,15 @@ export default function ReportPage() {
 
     const endDt = new Date(end);
     const diffMs = endDt - startDt;
-
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
     return `${startDt.toLocaleDateString()} | Trwanie: ${hours}h ${minutes}m`;
   };
 
-
   return (
     <div className="page-container">
-      {/* Karta Raportowania (Lewa) */}
+      {/* Karta Raportowania */}
       <div className="form-card">
         <h2 className="card-header">Raportowanie pracy</h2>
         <form onSubmit={handleSubmit} className="form-content">
@@ -178,14 +159,12 @@ export default function ReportPage() {
         {reportStatus && <p className="status-message">{reportStatus}</p>}
       </div>
 
-      {/* Karta Wyszukiwania (Prawa) - Zmieniona: Imię, Nazwisko, Stanowisko */}
+      {/* Karta Wyszukiwania */}
       <div className="form-card search-card">
         <h2 className="card-header">Wyszukiwanie raportów</h2>
-        {/* Widoczne Ostrzeżenie */}
         <p style={{ color: 'red', fontSize: '0.9em', marginBottom: '15px' }}>
-          *Uwaga: Wymaga modyfikacji backendu, aby wyszukiwać po Imieniu/Nazwisku/Stanowisku. Obecnie zwróci tylko Twoje raporty.
+          *Backend zwraca tylko Twoje raporty (wymaga modyfikacji dla admina)
         </p>
-
 
         <form onSubmit={handleSearch} className="form-content">
           <label>
@@ -228,7 +207,7 @@ export default function ReportPage() {
 
         {searchStatus && <p className="status-message">{searchStatus}</p>}
 
-        {/* Sekcja Wyświetlania Wyników */}
+        {/* Wyniki */}
         {searchResults.length > 0 && (
             <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
                 <h4 style={{ marginBottom: '10px' }}>Wyniki ({searchResults.length}):</h4>
