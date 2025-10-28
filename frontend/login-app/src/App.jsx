@@ -53,9 +53,9 @@ const App = () => {
         <Route
           path="/report"
           element={
-            <PrivateRoute>
+            //<PrivateRoute>
               <ReportPage />
-            </PrivateRoute>
+            //</PrivateRoute>
           }
         />
       </Routes>

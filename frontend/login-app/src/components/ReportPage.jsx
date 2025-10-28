@@ -1,16 +1,24 @@
 import { useState } from "react";
+import "../styles/ReportPage.css"; // Importujemy plik CSS
 
 export default function ReportPage() {
+  // Stany dla formularza raportowania
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [project, setProject] = useState("");
-  const [status, setStatus] = useState("");
+  const [reportStatus, setReportStatus] = useState("");
+
+  // Nowe stany dla formularza wyszukiwania
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [position, setPosition] = useState("");
+  const [searchStatus, setSearchStatus] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!startTime || !endTime || !project) {
-      setStatus("⚠️ Wypełnij wszystkie pola!");
+      setReportStatus("⚠️ Wypełnij wszystkie pola raportu!");
       return;
     }
 
@@ -24,54 +32,51 @@ export default function ReportPage() {
       });
 
       if (res.ok) {
-        setStatus("✅ Raport zapisany!");
+        setReportStatus("✅ Raport zapisany!");
         setStartTime("");
         setEndTime("");
         setProject("");
       } else {
-        setStatus("❌ Błąd przy zapisie raportu!");
+        setReportStatus("❌ Błąd przy zapisie raportu!");
       }
     } catch {
-      setStatus("🚫 Brak połączenia z serwerem!");
+      setReportStatus("🚫 Brak połączenia z serwerem!");
     }
   };
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f4f6f8",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          padding: "30px",
-          borderRadius: "10px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          width: "350px",
-        }}
-      >
-        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-          Raportowanie pracy
-        </h2>
+  const handleSearch = (e) => {
+    e.preventDefault();
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+    if (!firstName && !lastName && !position) {
+      setSearchStatus("⚠️ Wypełnij przynajmniej jedno pole wyszukiwania!");
+      return;
+    }
+
+    // TUTAJ ZINTEGRUJESZ LOGIKĘ WYSZUKIWANIA RAPORTÓW
+    // (np. wywołanie API: /api/reports/search?name=...&lastName=...&position=...)
+
+    console.log("Wyszukaj raporty dla:", { firstName, lastName, position });
+    setSearchStatus("🔍 Wyszukiwanie... (Logika API do integracji)");
+
+    // Poniżej możesz zresetować status i pola po krótkim czasie,
+    // gdy API zwróciłoby wynik
+    // setTimeout(() => setSearchStatus(""), 3000);
+  };
+
+  return (
+    <div className="page-container">
+      {/* Karta Raportowania */}
+      <div className="form-card">
+        <h2 className="card-header">Raportowanie pracy</h2>
+
+        <form onSubmit={handleSubmit} className="form-content">
           <label>
             Czas rozpoczęcia:
             <input
               type="datetime-local"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "4px",
-                boxSizing: "border-box",
-              }}
+              className="form-input"
             />
           </label>
 
@@ -81,12 +86,7 @@ export default function ReportPage() {
               type="datetime-local"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "4px",
-                boxSizing: "border-box",
-              }}
+              className="form-input"
             />
           </label>
 
@@ -97,35 +97,62 @@ export default function ReportPage() {
               placeholder="np. System CRM"
               value={project}
               onChange={(e) => setProject(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "4px",
-                boxSizing: "border-box",
-              }}
+              className="form-input"
             />
           </label>
 
-          <button
-            type="submit"
-            style={{
-              backgroundColor: "#007bff",
-              color: "white",
-              padding: "10px",
-              border: "none",
-              borderRadius: "6px",
-              fontSize: "16px",
-              cursor: "pointer",
-              marginTop: "10px",
-            }}
-          >
+          <button type="submit" className="submit-button">
             🚀 Zaraportuj
           </button>
         </form>
 
-        {status && (
-          <p style={{ textAlign: "center", marginTop: "15px" }}>{status}</p>
-        )}
+        {reportStatus && <p className="status-message">{reportStatus}</p>}
+      </div>
+
+      {/* Karta Wyszukiwania */}
+      <div className="form-card search-card">
+        <h2 className="card-header">Wyszukiwanie raportów</h2>
+
+        <form onSubmit={handleSearch} className="form-content">
+          <label>
+            Imię:
+            <input
+              type="text"
+              placeholder="Imię"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="form-input"
+            />
+          </label>
+
+          <label>
+            Nazwisko:
+            <input
+              type="text"
+              placeholder="Nazwisko"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="form-input"
+            />
+          </label>
+
+          <label>
+            Stanowisko:
+            <input
+              type="text"
+              placeholder="Stanowisko"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              className="form-input"
+            />
+          </label>
+
+          <button type="submit" className="search-button">
+            🔎 Wyszukaj
+          </button>
+        </form>
+
+        {searchStatus && <p className="status-message">{searchStatus}</p>}
       </div>
     </div>
   );
