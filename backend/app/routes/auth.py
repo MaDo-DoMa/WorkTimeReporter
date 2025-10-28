@@ -1,30 +1,30 @@
 import re
+import bcrypt
 from flask_mail import Message
-from flask import Blueprint, current_app as app, request, jsonify
-from itsdangerous import URLSafeTimedSerializer
+from flask import Blueprint, current_app as app, request, jsonify, session
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from app import mail
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-
 from models import db, User
 
 auth = Blueprint('auth', __name__)
 
+
 class UnvalidMailException(Exception):
-    def __init__(self, message):
-        super(UnvalidMailException, self).__init__(message)
+    pass
 
 
 class UnvalidTokenException(Exception):
-    def __init__(self, message):
-        super(UnvalidTokenException, self).__init__(message)
+    pass
 
 
 def generate_confirmation_token(email):
+    """Generuje token potwierdzający email"""
     serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
     return serializer.dumps(email, salt=app.config['EMAIL_CONFIRM_SALT'])
 
 
 def confirm_token(token, expiration=3600):
+    """Weryfikuje token potwierdzający"""
     serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
     try:
         email = serializer.loads(
@@ -32,41 +32,43 @@ def confirm_token(token, expiration=3600):
             salt=app.config['EMAIL_CONFIRM_SALT'],
             max_age=expiration
         )
-    except Exception as e:
-        raise UnvalidTokenException("Can't authorize groupCode")
-    return email
+        return email
+    except (SignatureExpired, BadSignature):
+        raise UnvalidTokenException("Invalid or expired token")
 
 
 def is_valid_email(email):
+    """Waliduje format email"""
     pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     if not re.match(pattern, email):
         raise UnvalidMailException('Invalid email address')
+    return True
 
 
-@auth.route('/request-code', methods=['POST'])
-def request_code():
-    email = request.get_json().get('email')
-    try:
-        is_valid_email(email)
-    except UnvalidMailException as ex:
-        return jsonify({'error': 'Invalid email address'}), 400
-
-    token = generate_confirmation_token(email)
+def send_verification_email(email, token):
+    """Wysyła email z kodem weryfikacyjnym"""
     msg = Message(
-        subject="Verify your registration code",
+        subject="Verify your email address",
         sender=app.config['MAIL_USERNAME'],
         recipients=[email],
     )
-    msg.body = token
-    try:
-        mail.send(msg)
-        return jsonify({'Success': 'Email sent successfully'}), 200
-    except Exception as ex:
-        return jsonify({'Error': ex}), 400
+    msg.body = f"""
+Hello!
+
+Thank you for registering. Please use the following code to verify your email:
+
+{token}
+
+This code will expire in 1 hour.
+
+If you didn't register, please ignore this email.
+    """
+    mail.send(msg)
 
 
 @auth.route('/register', methods=['POST'])
 def register():
+    """Rejestracja nowego użytkownika"""
     data = request.get_json()
 
     login = data.get('login')
@@ -87,32 +89,28 @@ def register():
         return jsonify({'error': 'Invalid email address'}), 400
 
     # Sprawdź czy użytkownik z tym emailem już istnieje
-    existing_user = db.session.query(User).filter(User.email == email).first()
+    existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({'error': 'User with this email already exists'}), 400
 
     # Sprawdź czy login jest unikalny
-    existing_login = db.session.query(User).filter(User.login == login).first()
+    existing_login = User.query.filter_by(login=login).first()
     if existing_login:
         return jsonify({'error': 'Login already taken'}), 400
 
     # Hashuj hasło
-    try:
-        import bcrypt
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        password_to_save = hashed_password.decode('utf-8')
-    except ImportError:
-        # Jeśli nie masz bcrypt (NIEZALECANE!)
-        password_to_save = password
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    password_to_save = hashed_password.decode('utf-8')
 
-    # Utwórz nowego użytkownika
+    # Utwórz nowego użytkownika (niezweryfikowanego)
     new_user = User(
         login=login,
         password=password_to_save,
         email=email,
         first_name=first_name,
         last_name=last_name,
-        position=position
+        position=position,
+        is_verified=False
     )
 
     try:
@@ -121,15 +119,9 @@ def register():
 
         # Wyślij email z kodem potwierdzającym
         token = generate_confirmation_token(email)
-        msg = Message(
-            subject="Verify your email address",
-            sender=app.config['MAIL_USERNAME'],
-            recipients=[email],
-        )
-        msg.body = f"Your confirmation code: {token}"
 
         try:
-            mail.send(msg)
+            send_verification_email(email, token)
         except Exception as mail_error:
             # Jeśli wysyłka się nie powiedzie, usuń użytkownika
             db.session.delete(new_user)
@@ -138,7 +130,7 @@ def register():
 
         return jsonify({
             'success': 'User registered successfully. Please check your email for confirmation code.',
-            'user_id': new_user.id
+            'email': email
         }), 201
 
     except Exception as e:
@@ -146,8 +138,9 @@ def register():
         return jsonify({'error': 'Failed to create user', 'details': str(e)}), 500
 
 
-@auth.route('/confirm-code', methods=['POST'])
-def confirm():
+@auth.route('/verify-email', methods=['POST'])
+def verify_email():
+    """Weryfikacja emaila za pomocą tokena"""
     data = request.get_json()
     token = data.get('token')
 
@@ -160,30 +153,59 @@ def confirm():
         return jsonify({'error': 'Invalid or expired confirmation code'}), 400
 
     # Znajdź użytkownika po emailu
-    user = db.session.query(User).filter(User.email == email).first()
+    user = User.query.filter_by(email=email).first()
 
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    # Opcjonalnie: dodaj pole 'is_verified' do modelu User
-    # user.is_verified = True
-    # db.session.commit()
+    if user.is_verified:
+        return jsonify({'message': 'Email already verified'}), 200
 
-    # Utwórz token JWT
-    access_token = create_access_token(identity=user.id)
+    # Zweryfikuj użytkownika
+    user.is_verified = True
+    db.session.commit()
 
     return jsonify({
-        "token": access_token,
-        "login": user.to_dict(),
-        "message": "Email confirmed successfully"
+        'success': 'Email verified successfully. You can now log in.',
+        'email': user.email
     }), 200
 
 
-from flask import session
+@auth.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Ponowne wysłanie kodu weryfikacyjnego"""
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    try:
+        is_valid_email(email)
+    except UnvalidMailException:
+        return jsonify({'error': 'Invalid email address'}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if user.is_verified:
+        return jsonify({'message': 'Email already verified'}), 200
+
+    # Wygeneruj i wyślij nowy token
+    token = generate_confirmation_token(email)
+
+    try:
+        send_verification_email(email, token)
+        return jsonify({'success': 'Verification email sent'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to send email', 'details': str(e)}), 500
 
 
 @auth.route('/login', methods=['POST'])
 def login():
+    """Logowanie użytkownika - BEZ JWT, tylko sesja"""
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -199,60 +221,66 @@ def login():
         return jsonify({'error': 'Invalid email address'}), 400
 
     # Znajdź użytkownika po emailu
-    user = db.session.query(User).filter(User.email == email).first()
+    user = User.query.filter_by(email=email).first()
 
     if not user:
         return jsonify({'error': 'Invalid email or password'}), 401
 
-    # Sprawdź hasło
-    try:
-        import bcrypt
-        if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-            return jsonify({'error': 'Invalid email or password'}), 401
-    except (ImportError, ValueError):
-        # Fallback dla niezahashowanych haseł (NIEZALECANE!)
-        if user.password != password:
-            return jsonify({'error': 'Invalid email or password'}), 401
+    # Sprawdź czy email jest zweryfikowany
+    if not user.is_verified:
+        return jsonify({'error': 'Please verify your email before logging in'}), 403
 
-    # Zapisz użytkownika w sesji
+    # Sprawdź hasło
+    if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+        return jsonify({'error': 'Invalid email or password'}), 401
+
+    # Zapisz użytkownika w sesji - BEZ JWT!
+    session.clear()  # Wyczyść starą sesję
     session['user_id'] = user.id
     session['email'] = user.email
-
-    # Utwórz token JWT (jeśli nadal chcesz go używać)
-    access_token = create_access_token(identity=user.id)
+    session.permanent = False  # Sesja wygasa po zamknięciu przeglądarki
 
     return jsonify({
-        "token": access_token,
-        "user": user.to_dict(),
-        "message": "Logged in successfully"
-    }), 200
-
-
-@auth.route('/me', methods=['GET'])
-def get_current_user():
-    # Pobierz ID użytkownika z sesji
-    user_id = session.get('user_id')
-
-    if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    # Znajdź użytkownika w bazie danych
-    user = db.session.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    return jsonify({
-        "user": user.to_dict()
+        'success': 'Logged in successfully',
+        'user': user.to_dict()
     }), 200
 
 
 @auth.route('/logout', methods=['POST'])
 def logout():
-    # Usuń dane z sesji
-    session.pop('user_id', None)
-    session.pop('email', None)
+    """Wylogowanie użytkownika"""
+    session.clear()
+    return jsonify({'success': 'Logged out successfully'}), 200
 
-    return jsonify({
-        "message": "Logged out successfully"
-    }), 200
+
+@auth.route('/me', methods=['GET'])
+def get_current_user():
+    """Pobierz informacje o zalogowanym użytkowniku"""
+    user_id = session.get('user_id')
+
+    if not user_id:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    user = User.query.get(user_id)
+
+    if not user:
+        session.clear()
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify({'user': user.to_dict()}), 200
+
+
+@auth.route('/check-session', methods=['GET'])
+def check_session():
+    """Sprawdź czy użytkownik jest zalogowany"""
+    user_id = session.get('user_id')
+
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            return jsonify({
+                'authenticated': True,
+                'user': user.to_dict()
+            }), 200
+
+    return jsonify({'authenticated': False}), 200

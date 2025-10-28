@@ -1,11 +1,11 @@
-### 1. Utwórz nowy raport
+
+### 1. Utwórz pierwszy raport (Website Redesign)
 POST http://localhost:5000/api/reports
 Content-Type: application/json
-Authorization: Bearer {{jwt_token}}
 
 {
-  "work_start": "2025-10-22T09:00:00",
-  "work_end": "2025-10-22T17:00:00",
+  "work_start": "2025-10-28T09:00:00",
+  "work_end": "2025-10-28T17:00:00",
   "project": "Website Redesign"
 }
 
@@ -14,52 +14,311 @@ Authorization: Bearer {{jwt_token}}
 ### 2. Utwórz raport bez work_end (praca w toku)
 POST http://localhost:5000/api/reports
 Content-Type: application/json
-Authorization: Bearer {{jwt_token}}
 
 {
-  "work_start": "2025-10-22T18:00:00",
+  "work_start": "2025-10-28T08:00:00",
   "project": "Mobile App"
 }
 
 ###
 
-### 3. Pobierz wszystkie raporty użytkownika
-GET http://localhost:5000/reports
-Authorization: Bearer {{jwt_token}}
-
-###
-
-### 4. Pobierz raporty filtrowane po projekcie
-GET http://localhost:5000/api/reports?project=Website Redesign
-Authorization: Bearer {{jwt_token}}
-
-###
-
-### 5. Pobierz konkretny raport
-GET http://localhost:5000/api/reports/1
-Authorization: Bearer {{jwt_token}}
-
-###
-
-### 6. Zaktualizuj raport
-PUT http://localhost:5000/api/reports/1
+### 3. Utwórz raport dla trzeciego projektu
+POST http://localhost:5000/api/reports
 Content-Type: application/json
-Authorization: Bearer {{jwt_token}}
 
 {
-  "work_end": "2025-10-22T18:30:00"
+  "work_start": "2025-10-27T14:00:00",
+  "work_end": "2025-10-27T18:00:00",
+  "project": "API Development"
 }
 
 ###
 
-### 7. Usuń raport
-DELETE http://localhost:5000/api/reports/1
-Authorization: Bearer {{jwt_token}}
+### 4. Dodaj więcej raportów dla istniejących projektów
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-26T10:00:00",
+  "work_end": "2025-10-26T16:30:00",
+  "project": "Website"
+}
 
 ###
 
-### 8. Pobierz listę projektów użytkownika
+### 5. Spróbuj utworzyć raport dla 4. projektu (powinien zwrócić błąd)
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T19:00:00",
+  "project": "Fourth Project"
+}
+
+###
+
+### 6. Test walidacji - brak wymaganych pól
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T10:00:00"
+}
+
+###
+
+### 7. Test walidacji - nieprawidłowy format daty
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "invalid-date",
+  "project": "Test Project"
+}
+
+###
+
+### 8. Test walidacji - work_end przed work_start
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T18:00:00",
+  "work_end": "2025-10-28T10:00:00",
+  "project": "Website Redesign"
+}
+
+###
+
+### ============================================
+### READING REPORTS
+### ============================================
+
+### 9. Pobierz wszystkie raporty użytkownika
+GET http://localhost:5000/api/reports
+
+###
+
+### 10. Pobierz raporty filtrowane po projekcie
+GET http://localhost:5000/api/reports?project=API Development
+
+###
+
+### 11. Pobierz raporty w zakresie dat
+GET http://localhost:5000/api/reports?start_date=2025-10-26&end_date=2025-10-28
+
+###
+
+### 12. Pobierz raporty z kombinacją filtrów
+GET http://localhost:5000/api/reports?project=Mobile App&start_date=2025-10-27
+
+###
+
+### 13. Pobierz konkretny raport (zamień ID na prawdziwe)
+GET http://localhost:5000/api/reports/1
+
+###
+
+### 14. Spróbuj pobrać nieistniejący raport
+GET http://localhost:5000/api/reports/99999
+# Oczekiwany błąd: Report not found
+
+###
+
+### ============================================
+### UPDATING REPORTS
+### ============================================
+
+### 15. Zaktualizuj raport - dodaj work_end
+PUT http://localhost:5000/api/reports/2
+Content-Type: application/json
+
+{
+  "work_end": "2025-10-28T18:30:00"
+}
+
+###
+
+### 16. Zaktualizuj raport - zmień projekt (na istniejący)
+PUT http://localhost:5000/api/reports/1
+Content-Type: application/json
+
+{
+  "project": "Mobile App"
+}
+
+###
+
+### 17. Zaktualizuj raport - zmień daty
+PUT http://localhost:5000/api/reports/1
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T08:30:00",
+  "work_end": "2025-10-28T17:30:00"
+}
+
+###
+
+### 18. Zaktualizuj raport - usuń work_end (ustaw jako w toku)
+PUT http://localhost:5000/api/reports/1
+Content-Type: application/json
+
+{
+  "work_end": null
+}
+
+###
+
+### 19. Spróbuj zaktualizować nieistniejący raport
+PUT http://localhost:5000/api/reports/99999
+Content-Type: application/json
+
+{
+  "work_end": "2025-10-28T18:00:00"
+}
+
+###
+
+### ============================================
+### PROJECT MANAGEMENT
+### ============================================
+
+### 20. Pobierz listę projektów użytkownika
 GET http://localhost:5000/api/reports/projects
-Authorization: Bearer {{jwt_token}}
+
+###
+
+### 21. Pobierz podsumowanie czasu pracy per projekt
+GET http://localhost:5000/api/reports/summary
+
+###
+
+### 22. Pobierz podsumowanie w zakresie dat
+GET http://localhost:5000/api/reports/summary?start_date=2025-10-26&end_date=2025-10-28
+
+###
+
+### 23. Pobierz statystyki użytkownika
+GET http://localhost:5000/api/reports/stats
+
+###
+
+### ============================================
+### DELETING REPORTS
+### ============================================
+
+### 24. Usuń raport
+DELETE http://localhost:5000/api/reports/1
+
+###
+
+### 25. Spróbuj usunąć nieistniejący raport
+DELETE http://localhost:5000/api/reports/99999
+# Oczekiwany błąd: Report not found
+
+###
+
+### ============================================
+### AUTHENTICATION TESTS
+### ============================================
+
+### 26. Test bez zalogowania - utwórz raport (powinien zwrócić 401)
+# Najpierw wyloguj się używając: POST http://localhost:5000/auth/logout
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T10:00:00",
+  "work_end": "2025-10-28T17:00:00",
+  "project": "Test"
+}
+
+###
+
+### 27. Test bez zalogowania - pobierz raporty (powinien zwrócić 401)
+GET http://localhost:5000/api/reports
+# Oczekiwany błąd: Not logged in
+
+###
+
+### ============================================
+### COMPLETE WORKFLOW TEST
+### ============================================
+
+### 28. Pełny test workflow
+# a) Utwórz raport w toku
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T13:00:00",
+  "project": "Website Redesign"
+}
+
+###
+
+# b) Sprawdź statystyki (powinien pokazać +1 active report)
+GET http://localhost:5000/api/reports/stats
+
+###
+
+# c) Zakończ pracę (użyj ID z poprzedniego requesta)
+PUT http://localhost:5000/api/reports/[ID_Z_KROKU_A]
+Content-Type: application/json
+
+{
+  "work_end": "2025-10-28T17:00:00"
+}
+
+###
+
+# d) Sprawdź statystyki ponownie (active reports powinien się zmniejszyć)
+GET http://localhost:5000/api/reports/stats
+
+###
+
+# e) Zobacz podsumowanie
+GET http://localhost:5000/api/reports/summary
+
+###
+
+### ============================================
+### EDGE CASES
+### ============================================
+
+### 29. Data w przeszłości (powinna działać)
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-01-15T09:00:00",
+  "work_end": "2025-01-15T17:00:00",
+  "project": "Website Redesign"
+}
+
+###
+
+### 30. Bardzo długa sesja pracy (ponad 24h - powinna działać)
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-27T08:00:00",
+  "work_end": "2025-10-28T10:00:00",
+  "project": "Mobile App"
+}
+
+###
+
+### 31. Bardzo krótka sesja (1 minuta - powinna działać)
+POST http://localhost:5000/api/reports
+Content-Type: application/json
+
+{
+  "work_start": "2025-10-28T14:00:00",
+  "work_end": "2025-10-28T14:01:00",
+  "project": "API Development"
+}
 
 ###

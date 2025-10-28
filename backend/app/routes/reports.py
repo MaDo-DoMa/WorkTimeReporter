@@ -1,32 +1,31 @@
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from models import db, Reports, User
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
 reports = Blueprint('reports', __name__)
 
 
-def get_current_user_id():
-    """Pobierz ID użytkownika z sesji lub JWT"""
-    # Najpierw sprawdź sesję
+def require_login():
+    """Sprawdza czy użytkownik jest zalogowany przez sesję"""
     user_id = session.get('user_id')
-    if user_id:
-        return user_id
-
-    # Jeśli nie ma sesji, spróbuj JWT
-    try:
-        return get_jwt_identity()
-    except:
+    if not user_id:
         return None
+
+    # Sprawdź czy użytkownik nadal istnieje w bazie
+    user = User.query.get(user_id)
+    if not user:
+        session.clear()
+        return None
+
+    return user_id
 
 
 @reports.route('/reports', methods=['POST'])
 def create_report():
     """Utwórz nowy raport czasu pracy"""
-    user_id = get_current_user_id()
-
+    user_id = require_login()
     if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
 
     data = request.get_json()
     work_start = data.get('work_start')
@@ -53,8 +52,9 @@ def create_report():
     try:
         work_start_dt = datetime.fromisoformat(work_start.replace('Z', '+00:00'))
         work_end_dt = datetime.fromisoformat(work_end.replace('Z', '+00:00')) if work_end else None
-    except ValueError:
-        return jsonify({'error': 'Invalid date format. Use ISO 8601 format (e.g., 2025-10-22T10:30:00)'}), 400
+    except ValueError as e:
+        return jsonify(
+            {'error': f'Invalid date format. Use ISO 8601 format (e.g., 2025-10-22T10:30:00). Error: {str(e)}'}), 400
 
     # Walidacja dat
     if work_end_dt and work_end_dt < work_start_dt:
@@ -85,17 +85,16 @@ def create_report():
 @reports.route('/reports', methods=['GET'])
 def get_reports():
     """Pobierz wszystkie raporty zalogowanego użytkownika"""
-    user_id = get_current_user_id()
-
+    user_id = require_login()
     if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
 
     # Filtry opcjonalne
     project = request.args.get('project')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
 
-    query = db.session.query(Reports).filter(Reports.user_id == user_id)
+    query = Reports.query.filter_by(user_id=user_id)
 
     if project:
         query = query.filter(Reports.project == project)
@@ -105,14 +104,14 @@ def get_reports():
             start_dt = datetime.fromisoformat(start_date)
             query = query.filter(Reports.work_start >= start_dt)
         except ValueError:
-            return jsonify({'error': 'Invalid start_date format'}), 400
+            return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD or ISO 8601 format'}), 400
 
     if end_date:
         try:
             end_dt = datetime.fromisoformat(end_date)
             query = query.filter(Reports.work_start <= end_dt)
         except ValueError:
-            return jsonify({'error': 'Invalid end_date format'}), 400
+            return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD or ISO 8601 format'}), 400
 
     reports_list = query.order_by(Reports.work_start.desc()).all()
 
@@ -125,39 +124,29 @@ def get_reports():
 @reports.route('/reports/<int:report_id>', methods=['GET'])
 def get_report(report_id):
     """Pobierz konkretny raport"""
-    user_id = get_current_user_id()
-
+    user_id = require_login()
     if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
 
-    report = db.session.query(Reports).filter(
-        Reports.id == report_id,
-        Reports.user_id == user_id
-    ).first()
+    report = Reports.query.filter_by(id=report_id, user_id=user_id).first()
 
     if not report:
-        return jsonify({'error': 'Report not found'}), 404
+        return jsonify({'error': 'Report not found or you do not have permission to view it'}), 404
 
-    return jsonify({
-        'report': report.to_dict()
-    }), 200
+    return jsonify({'report': report.to_dict()}), 200
 
 
 @reports.route('/reports/<int:report_id>', methods=['PUT'])
 def update_report(report_id):
     """Zaktualizuj raport"""
-    user_id = get_current_user_id()
-
+    user_id = require_login()
     if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
 
-    report = db.session.query(Reports).filter(
-        Reports.id == report_id,
-        Reports.user_id == user_id
-    ).first()
+    report = Reports.query.filter_by(id=report_id, user_id=user_id).first()
 
     if not report:
-        return jsonify({'error': 'Report not found'}), 404
+        return jsonify({'error': 'Report not found or you do not have permission to update it'}), 404
 
     data = request.get_json()
 
@@ -170,8 +159,10 @@ def update_report(report_id):
 
     if 'work_end' in data:
         try:
-            report.work_end = datetime.fromisoformat(data['work_end'].replace('Z', '+00:00')) if data[
-                'work_end'] else None
+            if data['work_end']:
+                report.work_end = datetime.fromisoformat(data['work_end'].replace('Z', '+00:00'))
+            else:
+                report.work_end = None
         except ValueError:
             return jsonify({'error': 'Invalid work_end format'}), 400
 
@@ -209,18 +200,14 @@ def update_report(report_id):
 @reports.route('/reports/<int:report_id>', methods=['DELETE'])
 def delete_report(report_id):
     """Usuń raport"""
-    user_id = get_current_user_id()
-
+    user_id = require_login()
     if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
 
-    report = db.session.query(Reports).filter(
-        Reports.id == report_id,
-        Reports.user_id == user_id
-    ).first()
+    report = Reports.query.filter_by(id=report_id, user_id=user_id).first()
 
     if not report:
-        return jsonify({'error': 'Report not found'}), 404
+        return jsonify({'error': 'Report not found or you do not have permission to delete it'}), 404
 
     try:
         db.session.delete(report)
@@ -234,10 +221,9 @@ def delete_report(report_id):
 @reports.route('/reports/projects', methods=['GET'])
 def get_user_projects():
     """Pobierz listę projektów użytkownika"""
-    user_id = get_current_user_id()
-
+    user_id = require_login()
     if not user_id:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
 
     projects = db.session.query(Reports.project).filter(
         Reports.user_id == user_id
@@ -249,4 +235,91 @@ def get_user_projects():
         'projects': project_list,
         'count': len(project_list),
         'slots_remaining': 3 - len(project_list)
+    }), 200
+
+
+@reports.route('/reports/summary', methods=['GET'])
+def get_reports_summary():
+    """Pobierz podsumowanie czasu pracy per projekt"""
+    user_id = require_login()
+    if not user_id:
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
+
+    # Opcjonalne filtry dat
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    query = Reports.query.filter_by(user_id=user_id)
+
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            query = query.filter(Reports.work_start >= start_dt)
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format'}), 400
+
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date)
+            query = query.filter(Reports.work_start <= end_dt)
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format'}), 400
+
+    reports_list = query.all()
+
+    summary = {}
+    total_hours = 0
+
+    for report in reports_list:
+        if report.work_start and report.work_end:
+            duration = (report.work_end - report.work_start).total_seconds() / 3600  # hours
+
+            if report.project not in summary:
+                summary[report.project] = {
+                    'total_hours': 0,
+                    'report_count': 0,
+                    'last_work_date': None
+                }
+
+            summary[report.project]['total_hours'] += duration
+            summary[report.project]['report_count'] += 1
+            total_hours += duration
+
+            # Śledź ostatnią datę pracy
+            if not summary[report.project]['last_work_date'] or report.work_start > datetime.fromisoformat(
+                    summary[report.project]['last_work_date']):
+                summary[report.project]['last_work_date'] = report.work_start.isoformat()
+
+    return jsonify({
+        'summary': summary,
+        'projects': list(summary.keys()),
+        'total_hours': round(total_hours, 2),
+        'total_reports': len(reports_list)
+    }), 200
+
+
+@reports.route('/reports/stats', methods=['GET'])
+def get_user_stats():
+    """Pobierz statystyki użytkownika"""
+    user_id = require_login()
+    if not user_id:
+        return jsonify({'error': 'Not logged in. Please log in first.'}), 401
+
+    total_reports = Reports.query.filter_by(user_id=user_id).count()
+    completed_reports = Reports.query.filter(
+        Reports.user_id == user_id,
+        Reports.work_end.isnot(None)
+    ).count()
+    active_reports = total_reports - completed_reports
+
+    projects = db.session.query(Reports.project).filter(
+        Reports.user_id == user_id
+    ).distinct().count()
+
+    return jsonify({
+        'total_reports': total_reports,
+        'completed_reports': completed_reports,
+        'active_reports': active_reports,
+        'projects_count': projects,
+        'projects_remaining': 3 - projects
     }), 200

@@ -1,0 +1,82 @@
+### AUTHENTICATION TESTS (bez JWT - tylko sesje)
+
+### 1. Rejestracja nowego użytkownika
+POST http://localhost:5000/auth/register
+Content-Type: application/json
+
+{
+  "login": "xd",
+  "password": "TestPassword123!",
+  "email": "xd@example.com",
+  "first_name": "Jan",
+  "last_name": "s",
+  "position": "Developer"
+}
+
+###
+
+### 2. Weryfikacja emaila (użyj tokena z emaila)
+POST http://localhost:5000/auth/verify-email
+Content-Type: application/json
+
+{
+  "token": "InhkQGV4YW1wbGUuY29tIg.aQEs3w.vsvR6wDf6pgUs2EK7lBLm5-HKt0"
+}
+
+###
+
+### 3. Ponowne wysłanie kodu weryfikacyjnego
+POST http://localhost:5000/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "xd@example.com"
+}
+
+###
+
+### 4. Logowanie (tylko po weryfikacji emaila)
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "email": "xd@example.com",
+  "password": "TestPassword123!"
+}
+
+###
+
+### 5. Sprawdź sesję
+GET http://localhost:5000/auth/check-session
+
+###
+
+### 6. Pobierz dane zalogowanego użytkownika
+GET http://localhost:5000/auth/me
+
+###
+
+### 7. Wylogowanie
+POST http://localhost:5000/auth/logout
+
+###
+
+### 8. Test logowania z niezweryfikowanym emailem (powinien zwrócić błąd)
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "email": "unverified@example.com",
+  "password": "password123"
+}
+
+###
+
+### 9. Test z nieprawidłowymi danymi
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@example.com",
+  "password": "wrongpassword"
+}

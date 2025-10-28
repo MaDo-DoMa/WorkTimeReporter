@@ -1,8 +1,7 @@
-from flask_jwt_extended import JWTManager
-from flask import Flask, jsonify
+from flask import Flask
 from flask_mail import Mail
 from models import db
-from flask_cors import CORS #delete after production
+from flask_cors import CORS
 
 mail = Mail()
 
@@ -11,20 +10,17 @@ def create_app(config_class="config.Config"):
     app = Flask(__name__, template_folder="../templates")
     app.config.from_object(config_class)
 
-    CORS(app, supports_credentials=True)
-    jwt = JWTManager(app)
-
-    @jwt.unauthorized_loader
-    def handle_missing_token(err_msg):
-        return jsonify({'error': 'Missing or invalid token'}), 401
-
-    @jwt.expired_token_loader
-    def handle_expired_token(jwt_header, jwt_payload):
-        return jsonify({'error': 'Token has expired'}), 401
+    # CORS z credentials - WAŻNE dla sesji!
+    CORS(app,
+         supports_credentials=True,
+         origins=["http://localhost:3000", "http://localhost:5000"],
+         allow_headers=["Content-Type"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     # Initialize extensions with app
     db.init_app(app)
     mail.init_app(app)
+
     with app.app_context():
         db.create_all()
 
@@ -39,4 +35,3 @@ def create_app(config_class="config.Config"):
     app.register_blueprint(reports_blueprint, url_prefix='/api')
 
     return app
-
