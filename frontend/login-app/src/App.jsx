@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginForm from './components/loginForm';
 import RegistrationForm from './components/RegistrationForm';
 import ReportPage from './components/ReportPage';
+import EmailVerification from './components/EmailVerification';
 import './styles/App.css';
 
 const App = () => {
@@ -56,6 +57,12 @@ const App = () => {
             //<PrivateRoute>
               <ReportPage />
             //</PrivateRoute>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <EmailVerification />
           }
         />
       </Routes>

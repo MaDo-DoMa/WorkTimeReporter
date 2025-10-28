@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-// import './../styles/RegistrationForm.css';
+import { useNavigate } from 'react-router-dom';
+import '../styles/RegistrationForm.css';
 
 const RegistrationForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     login: '',
     password: '',
@@ -23,50 +25,47 @@ const RegistrationForm = () => {
   };
 
   const handleSubmit = (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const { login, password, firstName, lastName, email, position } = formData;
-  if (!login || !password || !firstName || !lastName || !email || !position) {
-    setError('Wszystkie pola są wymagane!');
-    setSuccess('');
-    return;
-  }
-
-  fetch('http://localhost:5000/auth/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      login,
-      password,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      position,
-    }),
-  })
-    .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-    .then(({ ok, data }) => {
-      if (!ok) {
-        setError(data.error || 'Błąd rejestracji');
-        setSuccess('');
-      } else {
-        setSuccess('Zarejestrowano! Sprawdź maila, aby potwierdzić konto.');
-        setError('');
-        setFormData({
-          login: '',
-          password: '',
-          firstName: '',
-          lastName: '',
-          email: '',
-          position: '',
-        });
-      }
-    })
-    .catch(() => {
-      setError('Błąd serwera');
+    const { login, password, firstName, lastName, email, position } = formData;
+    if (!login || !password || !firstName || !lastName || !email || !position) {
+      setError('Wszystkie pola są wymagane!');
       setSuccess('');
-    });
-};
+      return;
+    }
+
+    fetch('http://localhost:5000/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        login,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        position,
+      }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || 'Błąd rejestracji');
+          setSuccess('');
+        } else {
+          setSuccess('✅ Zarejestrowano! Za chwilę zostaniesz przekierowany...');
+          setError('');
+          
+          // Przekieruj do strony weryfikacji po 2 sekundach
+          setTimeout(() => {
+            navigate('/verify-email', { state: { email: formData.email } });
+          }, 2000);
+        }
+      })
+      .catch(() => {
+        setError('Błąd serwera');
+        setSuccess('');
+      });
+  };
 
   return (
     <div className="registration-form-container">
