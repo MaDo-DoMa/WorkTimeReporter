@@ -35,6 +35,8 @@ def create_app(config_class="config.Config"):
     from app.routes.auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
+    from app.routes.reports import reports as reports_blueprint
+    app.register_blueprint(reports_blueprint, url_prefix='/api')
 
     return app
 

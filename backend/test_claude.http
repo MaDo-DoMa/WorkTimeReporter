@@ -5,9 +5,9 @@ POST http://localhost:5000/auth/register
 Content-Type: application/json
 
 {
-  "login": "jkowalskiiii",
+  "login": "jkowal",
   "password": "TestPassword123!",
-  "email": "jan.kowalskiiii@example.com",
+  "email": "jan.kowal@example.com",
   "first_name": "Jan",
   "last_name": "Kowalski",
   "position": "Developer"
@@ -30,7 +30,7 @@ POST http://localhost:5000/auth/confirm-code
 Content-Type: application/json
 
 {
-  "token": "Imphbi5rb3dhbHNraWlpaUBleGFtcGxlLmNvbSI.aPk8mw.kF9MDasUM-klCHGsd74t9h1WF4Q"
+  "token": "Imphbi5rb3dhbEBleGFtcGxlLmNvbSI.aP9U_A.fBIVk51CqCDd-krocBfrUm6o6Ik"
 }
 
 > {%
@@ -46,7 +46,7 @@ POST http://localhost:5000/auth/login
 Content-Type: application/json
 
 {
-  "email": "jan.kowalskiiii@example.com",
+  "email": "jan.kowal@example.com",
   "password": "TestPassword123!"
 }
 
@@ -91,3 +91,7 @@ GET http://localhost:5000/some-protected-endpoint
 Authorization: Bearer {{jwt_token}}
 
 ###
+
+### 8. Pobierz informacje o aktualnie zalogowanym użytkowniku
+GET http://localhost:5000/auth/me
+Authorization: Bearer {{jwt_token}}

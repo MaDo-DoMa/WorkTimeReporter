@@ -39,7 +39,7 @@ class Reports(db.Model):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "work_start": self.workstart.isoformat() if self.workstart else None,
-            "work_end": self.workend.isoformat() if self.workend else None,
+            "work_start": self.work_start.isoformat() if self.work_start else None,
+            "work_end": self.work_end.isoformat() if self.work_end else None,
             "project": self.project,
         }
