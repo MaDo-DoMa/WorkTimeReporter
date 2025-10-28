@@ -1,0 +1,10 @@
+# 1. Ignoruj folder frontend (wszystkie pliki i podkatalogi)
+/frontend/
+
+# 2. Ignoruj pliki tymczasowe i konfiguracyjne specyficzne dla systemów/użytkowników
+*.DS_Store
+*.iml
+.idea/
+.vscode/
+
+# Zostaw plik README.md i folder backend do śledzenia
